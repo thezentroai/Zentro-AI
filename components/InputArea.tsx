@@ -10,6 +10,20 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSendMessage, disabled })
   const [text, setText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Auto-focus on mount
+  useEffect(() => {
+    if (!disabled && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
+
+  // Re-focus after sending/processing
+  useEffect(() => {
+    if (!disabled && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [disabled]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (text.trim() && !disabled) {

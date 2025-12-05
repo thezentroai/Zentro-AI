@@ -96,12 +96,20 @@ const App: React.FC = () => {
         )
       );
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      
+      // Determine user-friendly error message
+      let errorText = "I'm sorry, I encountered an error while processing your request. Please try again later.";
+      
+      if (error.message && (error.message.includes("API Key") || error.message.includes("API_KEY"))) {
+        errorText = "Setup Error: The API Key is missing. If you are running this on GitHub Pages, you must configure your build process to inject `process.env.API_KEY`.";
+      }
+
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: Role.MODEL,
-        text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
+        text: errorText,
         timestamp: Date.now(),
         isError: true,
       };

@@ -1,13 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { User, Bot, AlertCircle } from 'lucide-react';
+import { User, Bot, AlertCircle, Check, Copy } from 'lucide-react';
 import { Message, Role } from '../types';
 
 interface MessageBubbleProps {
   message: Message;
 }
+
+const CodeBlock = ({ language, children, ...props }: any) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(children));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group">
+      <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={handleCopy}
+          className="p-1.5 bg-gray-700/50 hover:bg-gray-700 text-white rounded-md backdrop-blur-sm transition-colors border border-gray-600"
+          title="Copy code"
+        >
+          {copied ? <Check size={14} /> : <Copy size={14} />}
+        </button>
+      </div>
+      <SyntaxHighlighter
+        {...props}
+        style={vscDarkPlus}
+        language={language}
+        PreTag="div"
+        customStyle={{ margin: '1em 0', borderRadius: '0.5rem', padding: '1.5em 1em 1em 1em' }}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    </div>
+  );
+};
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === Role.USER;
@@ -49,15 +82,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                     code({node, inline, className, children, ...props}: any) {
                       const match = /language-(\w+)/.exec(className || '')
                       return !inline && match ? (
-                        <SyntaxHighlighter
-                          {...props}
-                          style={vscDarkPlus}
-                          language={match[1]}
-                          PreTag="div"
-                          customStyle={{ margin: '1em 0', borderRadius: '0.5rem' }}
-                        >
-                          {String(children).replace(/\n$/, '')}
-                        </SyntaxHighlighter>
+                        <CodeBlock language={match[1]} {...props}>
+                          {children}
+                        </CodeBlock>
                       ) : (
                         <code {...props} className={`${className} bg-gray-100 text-red-500 px-1 py-0.5 rounded text-xs md:text-sm font-mono`}>
                           {children}

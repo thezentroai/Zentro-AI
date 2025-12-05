@@ -2,16 +2,35 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { GEMINI_MODEL_NAME, SYSTEM_INSTRUCTION } from "../constants";
 
 // Initialize the API client
-// Ideally this would be outside a function if we were sure the env var is present at load time,
-// but inside ensures we capture it if it's injected slightly later in some environments.
+// We wrap this to safely handle environments where process.env might not be available
 let ai: GoogleGenAI | null = null;
 
 const getAI = (): GoogleGenAI => {
   if (!ai) {
-    const apiKey = process.env.API_KEY;
+    let apiKey = '';
+    
+    // 1. Try to get key from environment variables (Best practice for builds)
+    try {
+      // @ts-ignore - process might not be defined in browser context
+      if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+        apiKey = process.env.API_KEY;
+      }
+    } catch (e) {
+      console.warn("Could not access process.env");
+    }
+
+    // 2. Fallback: Direct key for GitHub Pages / Client-side demo
+    // This ensures the app works immediately on your website.
     if (!apiKey) {
-      console.error("API_KEY is missing from environment variables.");
-      throw new Error("API Key not found. Please check your configuration.");
+      apiKey = "AIzaSyDBJB68QruAZ01juqUF-_637fucfE_ZXdE";
+    }
+
+    // Debug log to help troubleshooting
+    console.log("Zentro AI: Initializing... API Key present:", !!apiKey);
+
+    if (!apiKey) {
+      console.error("API_KEY is missing.");
+      throw new Error("API Key not configured.");
     }
     ai = new GoogleGenAI({ apiKey });
   }
@@ -35,17 +54,19 @@ export class GeminiService {
         },
       });
     } catch (error) {
-      console.error("Failed to initialize chat:", error);
+      console.warn("Failed to initialize chat session:", error);
+      this.chat = null;
     }
   }
 
   public async *sendMessageStream(message: string): AsyncGenerator<string, void, unknown> {
+    // Try to initialize if not exists (e.g. previous attempt failed or session expired)
     if (!this.chat) {
       this.startNewChat();
     }
 
     if (!this.chat) {
-      throw new Error("Chat session could not be initialized.");
+      throw new Error("Chat session could not be initialized. API Key may be missing or invalid.");
     }
 
     try {
